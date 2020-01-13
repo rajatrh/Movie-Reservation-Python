@@ -1,0 +1,195 @@
+<style>
+  .hide {
+	  display:none;
+  }
+  .show {
+	  display:block;
+  }
+  .visible {
+	  visibility:visible;
+  }
+  .invisible {
+	  visibility:hidden;
+  }
+  </style>
+  <title>Movie Reservaion</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link href="/dashboard/images/favicon.png" rel="icon" type="image/png" />
+ <body>
+  <div class="container">
+    <div class="row">
+      <h1>Movie Reservation System</h1>
+	  <div style="float:right">
+	  <form action="/logout">
+	   <button type="submit" class="btn btn-warning">Logout</button>	
+	   </form>
+	  </div>
+	   
+	</div>
+	<div class="row">
+	  <div style="margin-top: 15px; height: 70vh;">
+	    <div class="col-sm-7 well" style="height: 100%;">
+		  <table class="table table-hover">
+				<thead>
+				  <tr>
+					<th style="width: 10%;">Showtime</th>
+					<th style="width: 30%;">Movie Name</th>
+					<th style="width: 15%;">Price/Ticket</th>
+					<th style="width: 20%;">Seats status</th>
+					<th style="width: 20%;">Actions</th>
+				  </tr>
+				</thead>
+				<tbody style="font-size: 12px;" id="showtimeTableBody">
+				</tbody>
+			  </table>
+		</div>
+		 <div class="col-sm-5 well" style="height: 100%;">
+		 <form>
+		  <div class="row form-group">
+				<h4 id="showtimeHeading" style="padding-left: 15px;">Add Showtimes</h4>
+			</div>
+		    <div class="row">
+				<div class="form-group col-sm-6">
+					<label for="sel1">Show Time</label>
+					<select class="form-control" id="showtimeDropDown">
+						<option value="morning">10:00 AM</option>
+						<option value="afternoon">01:00 PM</option>
+						<option value="evening">04:30 PM</option>
+						<option value="night">9:00 PM</option>
+					</select>
+				</div>
+			</div>
+			 <div class="row">
+				<div class="form-group col-sm-8">
+					<label id="labelforextraDropdown" for="movieTb">Movie</label>
+					<input id="movieTb" class="form-control" placeholder="Movie Name">
+				</div>
+			</div>
+			 <div class="row">
+				<div class="form-group col-sm-6">
+					<label for="price">Price/Ticket</label>
+					<input id="price" type="number" class="form-control" placeholder="Ticket Amount">
+				</div> 
+			</div>
+			 <div class="row">
+				<div class="form-group col-sm-5">
+					<label for="seatsFilled">Seats Filled</label>
+					<input disabled id="seatsFilled" class="form-control" placeholder="Seats Filled">
+				</div>
+				<div class="form-group col-sm-5">
+					<label for="totalSeats">Total Seats</label>
+					<input id="totalSeats" class="form-control" placeholder="Total Seats">
+				</div>
+			</div>
+			<br>
+			 <div class="row">
+			 <div class="form-group col-sm-12">
+			 <button class="btn btn-success" type="button" onclick="addShowtime()" id="btnShowtime">Add Showtime</button>
+			 <button class="btn btn-warning" type="button" onclick="resetEverything()" id="btnResetShowtime">Reset</button>
+			 <button style="float:right;" class="btn btn-danger" type="button" onclick="deleteShowtime()" id="btnDeleteShowtime">Delete Showtime</button>
+			 <div>
+			</div>
+		 </form>
+		</div>
+	  </div>
+	</div>
+  </div>
+  </div>
+  </div>
+  </body>
+ <script>
+ var bigData = [];
+ var whichEvent = 'addNew';
+ var editRow = 0;
+   window.addEventListener('load', getShowtimes);
+	
+	function getShowtimes() {
+	 	$.get('http://localhost:8081/readShowtimes', function(data){
+		// window.alert(data.data);
+		console.log(data);
+		var index;
+		var tableBody = document.getElementById('showtimeTableBody');
+		tableBody.innerHTML = '';
+		bigData = data.data;
+		for (index = 0; index < data.data.length; ++index) {
+			var row = data.data[index].split('#');
+			var trow = document.createElement('tr');
+			for (xindex = 2; xindex < row.length; ++xindex) {
+				var cell = document.createElement('td');
+				cell.innerHTML = row[xindex];
+				trow.appendChild(cell);
+			}
+			var cell = document.createElement('td');
+			var button = document.createElement('button');
+			button.id = 'editButton-' + (index+1);
+			button.innerHTML = 'Edit';
+			button.addEventListener('click', function() { setValues(this.id); });
+
+			cell.appendChild(button);
+			trow.appendChild(cell);
+			tableBody.appendChild(trow);
+		}
+	});
+	resetEverything();
+	}
+	
+	function addShowtime() {
+		var newRow = '';
+		if (whichEvent == 'addNew') {
+		newRow += (Number(bigData[bigData.length-1].split('#')[0]) + 1) + '#' + (new Date().getTime()) + '#';
+		} else {
+		newRow += bigData[editRow-1].split('#')[0] + '#' + bigData[editRow-1].split('#')[1] + '#';		
+		}
+		newRow += document.getElementById('showtimeDropDown').value + '#';
+		newRow += document.getElementById('movieTb').value + '#';
+		newRow += document.getElementById('price').value + '#';
+		newRow += (whichEvent === 'addNew' ? 0 : document.getElementById('seatsFilled').value) + '/';
+		newRow += document.getElementById('totalSeats').value;
+		if (whichEvent == 'addNew') {
+			bigData.push(newRow);
+		} else {
+			bigData[editRow-1] = newRow;
+		}
+		
+		$.post('http://localhost:8081/addShowtimes', {showtimeData: JSON.stringify(bigData)}, function(){
+		getShowtimes();});
+	}
+	
+	function deleteShowtime() {
+	bigData.splice(editRow-1, 1);
+	$.post('http://localhost:8081/addShowtimes', {showtimeData: JSON.stringify(bigData)}, function(){
+		getShowtimes();});
+	}
+	
+	function setValues(id) {
+		document.getElementById('btnDeleteShowtime').style.display = 'block';
+		document.getElementById('showtimeHeading').innerHTML = 'Edit Showtime';
+		document.getElementById('btnShowtime').innerHTML = 'Save Updated Showtime';
+		document.getElementById('btnResetShowtime').innerHTML = 'Cancel Changes';
+		document.getElementById('showtimeDropDown').value = bigData[id.split('-')[1] - 1].split('#')[2];
+		document.getElementById('movieTb').value = bigData[id.split('-')[1] - 1].split('#')[3];
+		document.getElementById('price').value = bigData[id.split('-')[1] - 1].split('#')[4];
+		document.getElementById('seatsFilled').value = bigData[id.split('-')[1] - 1].split('#')[5].split('/')[0];
+		document.getElementById('totalSeats').value = bigData[id.split('-')[1] - 1].split('#')[5].split('/')[1];
+		whichEvent  = 'editRow';
+		editRow = Number(id.split('-')[1]);
+	}
+     
+	function resetEverything() {
+		document.getElementById('btnDeleteShowtime').style.display = 'none';
+		document.getElementById('showtimeHeading').innerHTML = 'Add Showtime';
+		document.getElementById('btnShowtime').innerHTML = 'Add Showtime ';
+		document.getElementById('btnResetShowtime').innerHTML = 'Reset';
+		document.getElementById('showtimeDropDown').value = 'morning';
+		document.getElementById('movieTb').value = '';
+		document.getElementById('price').value = '';
+		document.getElementById('seatsFilled').value = 0;
+		document.getElementById('totalSeats').value = '';
+		whichEvent  = 'addNew';
+		editRow = 0;
+	}
+	
+ </script>
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+ <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
